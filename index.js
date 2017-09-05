@@ -16,19 +16,27 @@ var loaderUtils = require("loader-utils"),
     postfix;
 
 
-module.exports = function (source, inputSourceMap) {
-    var self = this,
-        query = loaderUtils.parseQuery(this.query),
-        callback = this.async(),
-        originalSource = source,
+module.exports = function (source, inputSourceMap, transformOptions) {
+    var isWebpack = !transformOptions;
+
+    var originalSource = source,
         allCollapsedVars = [],
         exportedVars = [],
-        exportedCollapsedVars = [],
-        config;
+        exportedCollapsedVars = [];
 
-    this.cacheable && this.cacheable();
+    if (isWebpack) {
+        var self = this,
+            query = loaderUtils.parseQuery(this.query),
+            callback = this.async();
 
-    config = merge(defaultConfig, this.options[query.config || "closureLoader"], query);
+        this.cacheable && this.cacheable();
+        config = merge(defaultConfig, this.options[query.config || "closureLoader"], query);
+    } else {
+        config = merge(defaultConfig, {
+          paths: transformOptions.paths
+        });
+        callback = transformOptions.callback;
+    }
 
     mapBuilder(config.paths, config.watch).then(function(provideMap) {
         var commentedRequireRegExp = new RegExp('\\/\\/\\s*goog\\.require *?\\(([\'"])(.*?)\\1\\);?', 'g');
@@ -41,7 +49,7 @@ module.exports = function (source, inputSourceMap) {
         }
 
         var provideRegExp = /goog\.provide *?\((['"])(.*?)\1\);?/,
-            requireRegExp = new RegExp('goog\\.require *?\\(([\'"])(.*?)\\1\\);?', 'g');
+            requireRegExp = new RegExp('goog\\.require *?\\(([\'"])(.*?)\\1\\);?', 'g'),
             exportVarTree = {},
             matches;
 
@@ -117,8 +125,7 @@ module.exports = function (source, inputSourceMap) {
             callback(null, source + postfix, result.map.toJSON());
             return;
         }
-
-        callback(null, source + postfix, inputSourceMap);
+        return callback(null, source + postfix, inputSourceMap);
     }).catch(function(error) {
       callback(error);
     });

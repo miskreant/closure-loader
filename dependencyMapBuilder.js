@@ -79,6 +79,8 @@ function resolveAndCacheDirectory(directory, watch) {
  * @returns {Promise}
  */
 function findProvideCalls(filePath) {
+    // maybe this instead, if not in webpack env?
+    // https://stackoverflow.com/questions/34135302/how-to-read-the-content-of-files-synchronously-in-node-js
     return readFile(filePath).then(function(fileContent) {
         var result = {};
         while (matches = provideRegExp.exec(fileContent)) {
